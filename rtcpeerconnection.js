@@ -991,14 +991,14 @@ module.exports = function(window, edgeVersion) {
                   return remoteMsid.stream;
                 }
               });
+              Object.defineProperty(track, 'id', {
+                get: function() {
+                  return remoteMsid.track;
+                }
+              });
+              streams[remoteMsid.stream].addTrack(track);
+              receiverList.push([track, rtpReceiver, streams[remoteMsid.stream]]);
             }
-            Object.defineProperty(track, 'id', {
-              get: function() {
-                return remoteMsid.track;
-              }
-            });
-            streams[remoteMsid.stream].addTrack(track);
-            receiverList.push([track, rtpReceiver, streams[remoteMsid.stream]]);
           } else {
             if (!streams.default) {
               streams.default = new window.MediaStream();
