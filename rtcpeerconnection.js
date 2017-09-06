@@ -983,7 +983,17 @@ module.exports = function(window, edgeVersion) {
           if (remoteMsid) {
             if (!streams[remoteMsid.stream]) {
               streams[remoteMsid.stream] = new window.MediaStream();
+              Object.defineProperty(streams[remoteMsid.stream], 'id', {
+                get: function() {
+                  return remoteMsid.stream;
+                }
+              });
             }
+            Object.defineProperty(track, 'id', {
+              get: function() {
+                return remoteMsid.track;
+              }
+            });
             streams[remoteMsid.stream].addTrack(track);
             receiverList.push([track, rtpReceiver, streams[remoteMsid.stream]]);
           } else {
