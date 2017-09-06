@@ -938,6 +938,9 @@ module.exports = function(window, edgeVersion) {
             direction === 'sendrecv' || direction === 'sendonly');
       } else if (description.type === 'answer' && !rejected) {
         transceiver = self.transceivers[sdpMLineIndex];
+        if (!transceiver) {
+          console.error('no transceiver for mline', sdpMLineIndex);
+        }
         iceGatherer = transceiver.iceGatherer;
         iceTransport = transceiver.iceTransport;
         dtlsTransport = transceiver.dtlsTransport;
@@ -983,7 +986,17 @@ module.exports = function(window, edgeVersion) {
           if (remoteMsid) {
             if (!streams[remoteMsid.stream]) {
               streams[remoteMsid.stream] = new window.MediaStream();
+              Object.defineProperty(streams[remoteMsid.stream], 'id', {
+                get: function() {
+                  return remoteMsid.stream;
+                }
+              });
             }
+            Object.defineProperty(track, 'id', {
+              get: function() {
+                return remoteMsid.track;
+              }
+            });
             streams[remoteMsid.stream].addTrack(track);
             receiverList.push([track, rtpReceiver, streams[remoteMsid.stream]]);
           } else {
@@ -1252,6 +1265,16 @@ module.exports = function(window, edgeVersion) {
       // dtls transport, potentially rtpsender and rtpreceiver.
       var track = transceiver.track;
       var kind = transceiver.kind;
+
+      if (transceiver.wantReceive && !transceiver.rtpReceiver) {
+        transceiver.rtpReceiver = new window.RTCRtpReceiver(
+          transceiver.dtlsTransport, kind);
+      }
+
+      if (transceiver.mid) {
+        return;
+      }
+
       var mid = SDPUtils.generateIdentifier();
       transceiver.mid = mid;
 
@@ -1289,11 +1312,6 @@ module.exports = function(window, edgeVersion) {
             ssrc: (2 * sdpMLineIndex + 1) * 1001 + 1
           };
         }
-      }
-
-      if (transceiver.wantReceive) {
-        transceiver.rtpReceiver = new window.RTCRtpReceiver(
-            transceiver.dtlsTransport, kind);
       }
 
       transceiver.localCapabilities = localCapabilities;
