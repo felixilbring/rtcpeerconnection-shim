@@ -410,6 +410,10 @@ module.exports = function(window, edgeVersion) {
     }
   };
 
+  RTCPeerConnection.prototype.removeTrack = function(rtcRtpSender) {
+      debugger;
+  };
+
   RTCPeerConnection.prototype.getSenders = function() {
     return this.transceivers.filter(function(transceiver) {
       return !!transceiver.rtpSender;
