@@ -208,7 +208,8 @@ function maybeAddCandidate(iceTransport, candidate) {
             candidate.protocol === remoteCandidate.protocol &&
             candidate.type === remoteCandidate.type;
       });
-  if (!alreadyAdded) {
+  var canAddCandidates = iceTransport.state !== 'completed';
+  if (!alreadyAdded && canAddCandidates) {
     iceTransport.addRemoteCandidate(candidate);
   }
   return !alreadyAdded;
@@ -593,6 +594,10 @@ module.exports = function(window, edgeVersion) {
     }
   };
 
+  function isValidParams(params) {
+      return params.codecs.length && params.encodings.length;
+  }
+
   // Start the RTP Sender and Receiver for a transceiver.
   RTCPeerConnection.prototype._transceive = function(transceiver,
       send, recv) {
@@ -626,7 +631,9 @@ module.exports = function(window, edgeVersion) {
       if (transceiver.sendEncodingParameters.length) {
         params.rtcp.ssrc = transceiver.sendEncodingParameters[0].ssrc;
       }
-      transceiver.rtpReceiver.receive(params);
+      if (isValidParams(params)) {
+          transceiver.rtpReceiver.receive(params);
+      }
     }
   };
 
@@ -782,6 +789,7 @@ module.exports = function(window, edgeVersion) {
       var kind = SDPUtils.getKind(mediaSection);
       var rejected = SDPUtils.isRejected(mediaSection);
       var protocol = lines[0].substr(2).split(' ')[2];
+      var hasSsrcs = SDPUtils.matchPrefix(mediaSection, 'a=ssrc:').length !== 0;
 
       var direction = SDPUtils.getDirection(mediaSection, sessionpart);
       var remoteMsid = SDPUtils.parseMsid(mediaSection);
@@ -980,8 +988,10 @@ module.exports = function(window, edgeVersion) {
             direction === 'sendrecv' || direction === 'recvonly',
             direction === 'sendrecv' || direction === 'sendonly');
 
-        if (rtpReceiver &&
-            (direction === 'sendrecv' || direction === 'sendonly')) {
+        var canReceive = rtpReceiver &&
+            (direction === 'sendrecv' || direction === 'sendonly') && hasSsrcs;
+
+        if (canReceive) {
           track = rtpReceiver.track;
           if (remoteMsid) {
             if (!streams[remoteMsid.stream]) {
@@ -1008,6 +1018,7 @@ module.exports = function(window, edgeVersion) {
           }
         } else {
           // FIXME: actually the receiver should be created later.
+          transceiver.rtpReceiver.stop();
           delete transceiver.rtpReceiver;
         }
       }
