@@ -410,8 +410,16 @@ module.exports = function(window, edgeVersion) {
     }
   };
 
-  RTCPeerConnection.prototype.removeTrack = function(rtcRtpSender) {
-      debugger;
+  RTCPeerConnection.prototype.removeTrack = function(rtpSender) {
+    var transceiver = this.transceivers.find(t => t.rtpSender === rtpSender);
+    if (transceiver) {
+      transceiver.stream.removeTrack(transceiver.track);
+      if (transceiver.stream.getTracks().length === 0) {
+        this.removeStream(transceiver.stream);
+      }
+
+      this._maybeFireNegotiationNeeded();
+    }
   };
 
   RTCPeerConnection.prototype.getSenders = function() {
