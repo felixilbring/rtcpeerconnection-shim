@@ -355,13 +355,7 @@ module.exports = function(window, edgeVersion) {
   };
 
   RTCPeerConnection.prototype.addTrack = function(track, stream) {
-    var transceiver;
-    for (var i = 0; i < this.transceivers.length; i++) {
-      if (!this.transceivers[i].track &&
-          this.transceivers[i].kind === track.kind) {
-        transceiver = this.transceivers[i];
-      }
-    }
+    var transceiver = this.transceivers.find(t => !t.track && t.kind == track.kind);
     if (!transceiver) {
       transceiver = this._createTransceiver(track.kind);
     }
@@ -410,8 +404,16 @@ module.exports = function(window, edgeVersion) {
     }
   };
 
-  RTCPeerConnection.prototype.removeTrack = function(rtcRtpSender) {
-      debugger;
+  RTCPeerConnection.prototype.removeTrack = function(rtpSender) {
+    var transceiver = this.transceivers.find(t => t.rtpSender === rtpSender);
+    if (transceiver) {
+      transceiver.stream.removeTrack(transceiver.track);
+      if (transceiver.stream.getTracks().length === 0) {
+        this.removeStream(transceiver.stream);
+      }
+
+      this._maybeFireNegotiationNeeded();
+    }
   };
 
   RTCPeerConnection.prototype.getSenders = function() {
